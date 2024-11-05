@@ -4,6 +4,9 @@ project(FoxgloveWebSocket VERSION 0.0.1 LANGUAGES CXX)
 find_package(nlohmann_json REQUIRED)
 find_package(websocketpp REQUIRED)
 
+# It uses headers that require symbols from openssl
+find_package(OpenSSL REQUIRED)
+
 add_library(foxglove_websocket STATIC src/base64.cpp src/parameter.cpp src/serialization.cpp src/server_factory.cpp)
 add_library(foxglove-websocket::foxglove-websocket ALIAS foxglove_websocket)
 
@@ -24,6 +27,8 @@ target_link_libraries(foxglove_websocket
     PUBLIC
         nlohmann_json::nlohmann_json
         websocketpp::websocketpp
+        OpenSSL::SSL
+        OpenSSL::Crypto
 )
 
 set_target_properties(foxglove_websocket PROPERTIES
