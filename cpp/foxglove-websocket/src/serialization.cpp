@@ -165,9 +165,20 @@ void ServiceResponse::read(const uint8_t* payload, size_t payloadSize) {
   offset += 4;
   const size_t encondingLength = static_cast<size_t>(ReadUint32LE(payload + offset));
   offset += 4;
+  // Check that the encoding length is not larger than the remaining payload size.
+  if (encondingLength > payloadSize - offset) {
+    throw std::runtime_error("Invalid service response encoding length, payload size: " +
+                             std::to_string(payloadSize) + ", offset: " + std::to_string(offset) +
+                             ", encoding length: " + std::to_string(encondingLength));
+  }
   this->encoding = std::string(reinterpret_cast<const char*>(payload + offset), encondingLength);
   offset += encondingLength;
   const auto dataSize = payloadSize - offset;
+  if(dataSize < 0) {
+    throw std::runtime_error("Invalid service response data size, payload size: " +
+                             std::to_string(payloadSize) + ", offset: " + std::to_string(offset) +
+                             ", data size: " + std::to_string(dataSize));
+  }
   this->data.resize(dataSize);
   std::memcpy(this->data.data(), payload + offset, dataSize);
 }
