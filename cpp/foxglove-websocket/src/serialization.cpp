@@ -1,5 +1,6 @@
 #include <foxglove/websocket/base64.hpp>
 #include <foxglove/websocket/serialization.hpp>
+#include <iostream>
 
 namespace foxglove {
 
@@ -159,15 +160,23 @@ void from_json(const nlohmann::json& j, ServiceRequestDefinition& r) {
 
 void ServiceResponse::read(const uint8_t* payload, size_t payloadSize) {
   size_t offset = 0;
+  std::cout << "Before read" << std::endl;
   this->serviceId = ReadUint32LE(payload + offset);
+  std::cout << "ServiceId: " << this->serviceId << std::endl;
   offset += 4;
+  std::cout << "Offset 1: " << offset << std::endl;
   this->callId = ReadUint32LE(payload + offset);
+  std::cout << "CallId: " << this->callId << std::endl;
   offset += 4;
+  std::cout << "Offset 2: " << offset << std::endl;
   const size_t encondingLength = static_cast<size_t>(ReadUint32LE(payload + offset));
   offset += 4;
+  std::cout << "Offset 3: " << offset << std::endl;
   this->encoding = std::string(reinterpret_cast<const char*>(payload + offset), encondingLength);
   offset += encondingLength;
+  std::cout << "Offset 4: " << offset << std::endl;
   const auto dataSize = payloadSize - offset;
+  std::cout << "Data size: " << dataSize << std::endl;
   this->data.resize(dataSize);
   std::memcpy(this->data.data(), payload + offset, dataSize);
 }

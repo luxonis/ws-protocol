@@ -17,6 +17,8 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <iostream>
+
 
 #include "callback_queue.hpp"
 #include "common.hpp"
@@ -708,6 +710,8 @@ inline void Server<ServerConfiguration>::handleTextMessage(ConnHandle hdl, Messa
 template <typename ServerConfiguration>
 inline void Server<ServerConfiguration>::handleBinaryMessage(ConnHandle hdl, MessagePtr msg) {
   const auto& payload = msg->get_payload();
+  std::cout << "DEPTHAI DEBUG MESSAGE: Payload is " << payload << std::endl;
+  std::cout << "Payload size is " << payload.size() << std::endl;
   const uint8_t* data = reinterpret_cast<const uint8_t*>(payload.data());
   const size_t length = payload.size();
 
