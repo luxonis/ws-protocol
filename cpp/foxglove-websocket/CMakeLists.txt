@@ -37,7 +37,7 @@ set_target_properties(foxglove_websocket PROPERTIES
 )
 
 if (MSVC)
-  target_compile_options(foxglove_websocket PRIVATE /W4)
+  target_compile_options(foxglove_websocket PRIVATE /W4 /bigobj)
 else()
   target_compile_options(foxglove_websocket PRIVATE -Wall -Wextra -Wpedantic -Wold-style-cast -Wfloat-equal)
 endif()
