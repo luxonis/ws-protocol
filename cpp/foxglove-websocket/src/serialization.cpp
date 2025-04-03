@@ -173,7 +173,7 @@ void ServiceResponse::read(const uint8_t* payload, size_t payloadSize) {
   }
   this->encoding = std::string(reinterpret_cast<const char*>(payload + offset), encondingLength);
   offset += encondingLength;
-  const auto dataSize = payloadSize - offset;
+  const int64_t dataSize = payloadSize - offset;
   if(dataSize < 0) {
     throw std::runtime_error("Invalid service response data size, payload size: " +
                              std::to_string(payloadSize) + ", offset: " + std::to_string(offset) +
