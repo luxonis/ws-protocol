@@ -41,57 +41,58 @@ if (MSVC)
 else()
   target_compile_options(foxglove_websocket PRIVATE -Wall -Wextra -Wpedantic -Wold-style-cast -Wfloat-equal)
 endif()
+if(FOXGLOVE_WEBSOCKET_INSTALL)
+    # Installation
+    include(GNUInstallDirs)
 
-# Installation
-include(GNUInstallDirs)
+    install(TARGETS foxglove_websocket
+        EXPORT foxglove_websocketTargets
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} # For Windows DLLs
+        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
 
-install(TARGETS foxglove_websocket
-    EXPORT foxglove_websocketTargets
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} # For Windows DLLs
-    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-)
+    install(DIRECTORY include/
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
 
-install(DIRECTORY include/
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-)
+    install(FILES ${CMAKE_SOURCE_DIR}/LICENSE
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/licenses/
+    )
 
-install(FILES ${CMAKE_SOURCE_DIR}/LICENSE
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/licenses/
-)
+    # Export the targets to a file
+    install(EXPORT foxglove_websocketTargets
+        FILE foxglove_websocketTargets.cmake
+        NAMESPACE foxglove-websocket::
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/foxglove_websocket
+    )
 
-# Export the targets to a file
-install(EXPORT foxglove_websocketTargets
-    FILE foxglove_websocketTargets.cmake
-    NAMESPACE foxglove-websocket::
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/foxglove_websocket
-)
+    # Create a version file
+    include(CMakePackageConfigHelpers)
+    write_basic_package_version_file(
+        "${CMAKE_CURRENT_BINARY_DIR}/foxglove_websocketConfigVersion.cmake"
+        VERSION ${PROJECT_VERSION}
+        COMPATIBILITY AnyNewerVersion
+    )
 
-# Create a version file
-include(CMakePackageConfigHelpers)
-write_basic_package_version_file(
-    "${CMAKE_CURRENT_BINARY_DIR}/foxglove_websocketConfigVersion.cmake"
-    VERSION ${PROJECT_VERSION}
-    COMPATIBILITY AnyNewerVersion
-)
+    # Config file
+    configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/foxglove_websocketConfig.cmake.in
+        "${CMAKE_CURRENT_BINARY_DIR}/foxglove_websocketConfig.cmake"
+        INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/foxglove_websocket
+    )
 
-# Config file
-configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/foxglove_websocketConfig.cmake.in
-    "${CMAKE_CURRENT_BINARY_DIR}/foxglove_websocketConfig.cmake"
-    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/foxglove_websocket
-)
+    # Install the config files
+    install(FILES
+        "${CMAKE_CURRENT_BINARY_DIR}/foxglove_websocketConfig.cmake"
+        "${CMAKE_CURRENT_BINARY_DIR}/foxglove_websocketConfigVersion.cmake"
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/foxglove_websocket
+    )
 
-# Install the config files
-install(FILES
-    "${CMAKE_CURRENT_BINARY_DIR}/foxglove_websocketConfig.cmake"
-    "${CMAKE_CURRENT_BINARY_DIR}/foxglove_websocketConfigVersion.cmake"
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/foxglove_websocket
-)
-
-# Export from the build tree
-export(EXPORT foxglove_websocketTargets
-    FILE "${CMAKE_CURRENT_BINARY_DIR}/foxglove_websocketTargets.cmake"
-    NAMESPACE foxglove-websocket::
-)
-export(PACKAGE foxglove_websocket)
+    # Export from the build tree
+    export(EXPORT foxglove_websocketTargets
+        FILE "${CMAKE_CURRENT_BINARY_DIR}/foxglove_websocketTargets.cmake"
+        NAMESPACE foxglove-websocket::
+    )
+    export(PACKAGE foxglove_websocket)
+endif()
