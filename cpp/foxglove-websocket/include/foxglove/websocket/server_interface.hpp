@@ -14,6 +14,12 @@
 namespace foxglove {
 
 constexpr size_t DEFAULT_SEND_BUFFER_LIMIT_BYTES = 10000000UL;  // 10 MB
+constexpr size_t DEFAULT_SEND_BUFFER_LIMIT_MESSAGES = 10;
+
+enum class MessageDropPolicy : uint8_t {
+  MAX_BUFFER_SIZE = 0,
+  MAX_MESSAGE_COUNT = 1,
+};
 
 using MapOfSets = std::unordered_map<std::string, std::unordered_set<std::string>>;
 
@@ -47,6 +53,8 @@ struct ServerOptions {
   std::vector<std::string> supportedEncodings;
   std::unordered_map<std::string, std::string> metadata;
   std::unordered_map<uint8_t, size_t> sendBufferPriorityLimitBytes = {{0, DEFAULT_SEND_BUFFER_LIMIT_BYTES}};
+  std::unordered_map<uint8_t, size_t> sendBufferPriorityLimitMessages = {{0, DEFAULT_SEND_BUFFER_LIMIT_MESSAGES}};
+  MessageDropPolicy messageDropPolicy = MessageDropPolicy::MAX_MESSAGE_COUNT;
   bool useTls = false;
   std::string certfile = "";
   std::string keyfile = "";

@@ -234,6 +234,9 @@ private:
   void handleSubscribeConnectionGraph(ConnHandle hdl);
   void handleUnsubscribeConnectionGraph(ConnHandle hdl);
   void handleFetchAsset(const nlohmann::json& payload, ConnHandle hdl);
+
+  bool shouldMessageBeDropped(std::shared_ptr<websocketpp::connection<ServerConfiguration>> con,
+                              const size_t payloadSize, const uint8_t priority);
 };
 
 template <typename ServerConfiguration>
@@ -983,6 +986,21 @@ inline void Server<ServerConfiguration>::broadcastMessage(ChannelId chanId, uint
 }
 
 template <typename ServerConfiguration>
+bool Server<ServerConfiguration>::shouldMessageBeDropped(
+  std::shared_ptr<websocketpp::connection<ServerConfiguration>> con, const size_t payloadSize,
+  const uint8_t priority) {
+  switch (_options.messageDropPolicy) {
+    case MessageDropPolicy::MAX_BUFFER_SIZE:  // max buffer size is exceeded
+      return con->get_buffered_amount() + payloadSize >=
+             _options.sendBufferPriorityLimitBytes.at(priority);
+    case MessageDropPolicy::MAX_MESSAGE_COUNT:  // max number of enqueued messages is exceeded
+      return con->get_send_queue_size() >= _options.sendBufferPriorityLimitMessages.at(priority);
+    default:
+      throw std::runtime_error("Invalid message dropping policy");
+  }
+}
+
+template <typename ServerConfiguration>
 inline void Server<ServerConfiguration>::sendMessage(ConnHandle clientHandle, ChannelId chanId,
                                                      uint64_t timestamp, const uint8_t* payload,
                                                      size_t payloadSize, uint8_t priority) {
@@ -992,14 +1010,11 @@ inline void Server<ServerConfiguration>::sendMessage(ConnHandle clientHandle, Ch
     return;
   }
 
-  const auto bufferSizeinBytes = con->get_buffered_amount();
-  const auto priorityBufferLimitBytes = _options.sendBufferPriorityLimitBytes.at(priority);
-
-  if (bufferSizeinBytes + payloadSize >= priorityBufferLimitBytes) {
+  // Message dropping
+  if (shouldMessageBeDropped(con, payloadSize, priority)) {
     const auto logFn = [this, clientHandle, priority]() {
-      sendStatusAndLogMsg(
-        clientHandle, StatusLevel::Warning,
-        "Send buffer limit reached for priority level: " + std::to_string(priority));
+      sendStatusAndLogMsg(clientHandle, StatusLevel::Warning,
+                          "Message dropped, priority level: " + std::to_string(priority));
     };
     FOXGLOVE_DEBOUNCE(logFn, 2500)
     return;
