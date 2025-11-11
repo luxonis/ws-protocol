@@ -136,9 +136,9 @@ public:
   void setHandlers(ServerHandlers<ConnHandle>&& handlers) override;
 
   void broadcastMessage(ChannelId chanId, uint64_t timestamp, const uint8_t* payload,
-                        size_t payloadSize) override;
+                        size_t payloadSize, uint8_t priority) override;
   void sendMessage(ConnHandle clientHandle, ChannelId chanId, uint64_t timestamp,
-                   const uint8_t* payload, size_t payloadSize) override;
+                   const uint8_t* payload, size_t payloadSize, uint8_t priority) override;
   void sendStatusAndLogMsg(ConnHandle clientHandle, const StatusLevel level,
                            const std::string& message,
                            const std::optional<std::string>& id = std::nullopt);
@@ -234,6 +234,9 @@ private:
   void handleSubscribeConnectionGraph(ConnHandle hdl);
   void handleUnsubscribeConnectionGraph(ConnHandle hdl);
   void handleFetchAsset(const nlohmann::json& payload, ConnHandle hdl);
+
+  bool shouldMessageBeDropped(std::shared_ptr<websocketpp::connection<ServerConfiguration>> con,
+                              const size_t payloadSize, const uint8_t priority);
 };
 
 template <typename ServerConfiguration>
@@ -974,28 +977,44 @@ inline void Server<ServerConfiguration>::removeServices(const std::vector<Servic
 template <typename ServerConfiguration>
 inline void Server<ServerConfiguration>::broadcastMessage(ChannelId chanId, uint64_t timestamp,
                                                           const uint8_t* payload,
-                                                          size_t payloadSize) {
+                                                          size_t payloadSize, uint8_t priority) {
   std::shared_lock<std::shared_mutex> lock(_clientsMutex);
   for (const auto& [hdl, clientInfo] : _clients) {
     (void)clientInfo;
-    sendMessage(hdl, chanId, timestamp, payload, payloadSize);
+    sendMessage(hdl, chanId, timestamp, payload, payloadSize, priority);
+  }
+}
+
+template <typename ServerConfiguration>
+bool Server<ServerConfiguration>::shouldMessageBeDropped(
+  std::shared_ptr<websocketpp::connection<ServerConfiguration>> con, const size_t payloadSize,
+  const uint8_t priority) {
+  switch (_options.messageDropPolicy) {
+    case MessageDropPolicy::MAX_BUFFER_SIZE:  // max buffer size is exceeded
+      return con->get_buffered_amount() + payloadSize >=
+             _options.sendBufferPriorityLimitBytes.at(priority);
+    case MessageDropPolicy::MAX_MESSAGE_COUNT:  // max number of enqueued messages is exceeded
+      return con->get_send_queue_size() >= _options.sendBufferPriorityLimitMessages.at(priority);
+    default:
+      throw std::runtime_error("Invalid message dropping policy");
   }
 }
 
 template <typename ServerConfiguration>
 inline void Server<ServerConfiguration>::sendMessage(ConnHandle clientHandle, ChannelId chanId,
                                                      uint64_t timestamp, const uint8_t* payload,
-                                                     size_t payloadSize) {
+                                                     size_t payloadSize, uint8_t priority) {
   websocketpp::lib::error_code ec;
   const auto con = _server.get_con_from_hdl(clientHandle, ec);
   if (ec || !con) {
     return;
   }
 
-  const auto bufferSizeinBytes = con->get_buffered_amount();
-  if (bufferSizeinBytes + payloadSize >= _options.sendBufferLimitBytes) {
-    const auto logFn = [this, clientHandle]() {
-      sendStatusAndLogMsg(clientHandle, StatusLevel::Warning, "Send buffer limit reached");
+  // Message dropping
+  if (shouldMessageBeDropped(con, payloadSize, priority)) {
+    const auto logFn = [this, clientHandle, priority]() {
+      sendStatusAndLogMsg(clientHandle, StatusLevel::Warning,
+                          "Message dropped, priority level: " + std::to_string(priority));
     };
     FOXGLOVE_DEBOUNCE(logFn, 2500)
     return;

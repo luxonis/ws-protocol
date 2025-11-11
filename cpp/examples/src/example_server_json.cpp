@@ -86,7 +86,7 @@ int main() {
 
     for (const auto& chanId : channelIds) {
       server->broadcastMessage(chanId, now, reinterpret_cast<const uint8_t*>(serializedMsg.data()),
-                               serializedMsg.size());
+                               serializedMsg.size(), 0);
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(50));

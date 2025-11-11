@@ -14,6 +14,12 @@
 namespace foxglove {
 
 constexpr size_t DEFAULT_SEND_BUFFER_LIMIT_BYTES = 10000000UL;  // 10 MB
+constexpr size_t DEFAULT_SEND_BUFFER_LIMIT_MESSAGES = 10;
+
+enum class MessageDropPolicy : uint8_t {
+  MAX_BUFFER_SIZE = 0,
+  MAX_MESSAGE_COUNT = 1,
+};
 
 using MapOfSets = std::unordered_map<std::string, std::unordered_set<std::string>>;
 
@@ -46,7 +52,9 @@ struct ServerOptions {
   std::vector<std::string> capabilities;
   std::vector<std::string> supportedEncodings;
   std::unordered_map<std::string, std::string> metadata;
-  size_t sendBufferLimitBytes = DEFAULT_SEND_BUFFER_LIMIT_BYTES;
+  std::unordered_map<uint8_t, size_t> sendBufferPriorityLimitBytes = {{0, DEFAULT_SEND_BUFFER_LIMIT_BYTES}};
+  std::unordered_map<uint8_t, size_t> sendBufferPriorityLimitMessages = {{0, DEFAULT_SEND_BUFFER_LIMIT_MESSAGES}};
+  MessageDropPolicy messageDropPolicy = MessageDropPolicy::MAX_MESSAGE_COUNT;
   bool useTls = false;
   std::string certfile = "";
   std::string keyfile = "";
@@ -107,9 +115,9 @@ public:
   virtual void setHandlers(ServerHandlers<ConnectionHandle>&& handlers) = 0;
 
   virtual void broadcastMessage(ChannelId chanId, uint64_t timestamp, const uint8_t* payload,
-                                size_t payloadSize) = 0;
+                                size_t payloadSize, uint8_t priority) = 0;
   virtual void sendMessage(ConnectionHandle clientHandle, ChannelId chanId, uint64_t timestamp,
-                           const uint8_t* payload, size_t payloadSize) = 0;
+                           const uint8_t* payload, size_t payloadSize, uint8_t priority) = 0;
   virtual void broadcastTime(uint64_t timestamp) = 0;
   virtual void sendServiceResponse(ConnectionHandle clientHandle,
                                    const ServiceResponse& response) = 0;
