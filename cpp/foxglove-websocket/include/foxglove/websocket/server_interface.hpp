@@ -61,6 +61,7 @@ struct ServerOptions {
   std::string sessionId;
   bool useCompression = false;
   std::vector<std::regex> clientTopicWhitelistPatterns;
+  size_t numCallbackThreads = 1;
 };
 
 template <typename ConnectionHandle>

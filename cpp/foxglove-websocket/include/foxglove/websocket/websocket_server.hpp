@@ -269,7 +269,7 @@ inline Server<ServerConfiguration>::Server(std::string name, LogCallback logger,
   _server.set_listen_backlog(128);
 
   // Callback queue for handling client requests.
-  _handlerCallbackQueue = std::make_unique<CallbackQueue>(_logger, /*numThreads=*/1ul);
+  _handlerCallbackQueue = std::make_unique<CallbackQueue>(_logger, _options.numCallbackThreads);
 }
 
 template <typename ServerConfiguration>
